@@ -1,0 +1,161 @@
+--[[
+ Script om watergebruik te monitoren
+ 
+ Corrigeren incremental sensor:
+ http://192.168.61.54:8080/json.htm?type=command&param=udevice&idx=1737&svalue=-1
+ Basis is watermeter.py dat verbruik vastlegt in twee sesnsors in Domoticz
+ Corrigeren stand customsensor door aanpassen: 
+ /home/pi/domoticz/scripts/python/meterstand_water.txt
+ 
+ Stand van de globale variabelen alleen aan te passen via een script
+ domoticz.globalData.WaterUurBeginStand   = '1257.468'
+ domoticz.globalData.WaterDagBeginStand   = '1257.350'
+ domoticz.globalData.WaterWeekBeginStand  = '1259.405'
+ domoticz.globalData.WaterMaandBeginStand = '1257.300'
+ domoticz.globalData.WaterJaarBeginStand  = '1181.000'
+ 
+ globale variabelen bekijken:
+ /home/pi/domoticz/scripts/dzVents/data/__data_global_data.lua
+
+ Wat is hoog waterverbruik? Normaal volgens CBS is gemiddeld 130 liter pppd
+
+]]
+
+return {
+	on = {
+		timer = {
+		    'at 23:59', -- dag afsluiten
+		    'at 00:00', -- nieuwe dag
+		    'at *:01',  -- elk uur
+		},
+	},
+	logging = {
+		level = domoticz.LOG_INFO,
+		marker = 'Watergebruik',
+	},
+	execute = function(domoticz, timer)
+
+        -- waterprijs elk jaar aanpassen. Zie https://www.pwn.nl/tarieven
+        domoticz.globalData.WaterPrijs  = '2.112' -- per 1000/liter incl 9% BTW incl BOL 0.382 	    
+        local vastRecht                 = '71.26'
+        local dagJaarFactuur            = "1"  -- geeft het moment aan waarop PWN de jaarfaktuur stuurt
+        local maandJaarFactuur          = "10" -- geeft het moment aan waarop PWN de jaarfaktuur stuurt
+        local hoogUurVerbruik           = 40
+        
+        --Hieronder vaste data
+ 
+        water = domoticz.devices('water')
+        local stand = water.counter
+        
+        local bericht = ''
+        local time = require('Time')
+        local now = time() 
+        local dagVerbruik   = 0
+        local weekVerbruik  = 0
+        local maandVerbruik = 0
+        local jaarVerbruik  = 0
+        local now = os.time()
+        local dag   = domoticz.time.dayAbbrOfWeek
+        local week  = domoticz.time.week
+        local mnd   = domoticz.time.monthAbbrName
+        local jaar  = domoticz.time.year
+ 
+        --Begin dag: reset dagteller    
+        
+        if (domoticz.time.matchesRule('at 00:00')) then
+            water.counterToday = 0
+            domoticz.globalData.WaterDagBeginStand = tostring(stand)
+            
+            -- En op de eerste van de maand
+            
+            if (tostring(domoticz.time.day) == '1') then
+             maandVerbruik = (tonumber(stand) - tonumber(domoticz.globalData.WaterMaandBeginStand)) * 1000 
+             maandVerbruik = domoticz.utils.round(maandVerbruik,0)
+             local maandKosten = domoticz.utils.round(maandVerbruik/1000*domoticz.globalData.WaterPrijs)
+             bericht = 'watergebruik '..mnd..' = '..maandVerbruik..' l. ->'..maandKosten
+             domoticz.notify("Domoticz", bericht, domoticz.PRIORITY_LOW,domoticz.SOUND_DEFAULT, "" , domoticz.NSS_TELEGRAM)
+             --globale stand bijwerken
+             domoticz.globalData.WaterMaandBeginStand = tostring(stand)
+            end 
+        end
+
+        -- einde weekverwerking op zondagavond
+
+        if (domoticz.time.matchesRule('at 23:59') and domoticz.time.wday == 1 ) then
+	       weekVerbruik = (tonumber(stand) - tonumber(domoticz.globalData.WaterWeekBeginStand)) * 1000
+	       weekVerbruik = domoticz.utils.round(weekVerbruik,0)
+	       local weekKosten = domoticz.utils.round(weekVerbruik/1000*domoticz.globalData.WaterPrijs)
+           bericht = 'Watergebruik W'..week..' = '..weekVerbruik..' l. -> '..weekKosten..' EUR'
+           
+           domoticz.log(bericht)
+           domoticz.notify("Domoticz", bericht, domoticz.PRIORITY_LOW,domoticz.SOUND_DEFAULT, "" , domoticz.NSS_TELEGRAM)	       
+	        
+	       domoticz.log(weekVerbruik) 
+	       --bewaar week beginstand
+	       domoticz.globalData.WaterWeekBeginStand = tostring(water.counter)            
+        end
+
+        -- jaarverwerking op einde dag van de facturatiedatum
+        
+        if (tostring(domoticz.time.day) == dagJaarFactuur and 
+            tostring(domoticz.time.month) == maandJaarFactuur and
+            domoticz.time.matchesRule('at 23:59') )  then
+            
+             jaarVerbruik = (tonumber(stand) - tonumber(domoticz.globalData.WaterJaarBeginStand)) * 1000 
+             local jaarKosten = domoticz.utils.round(jaarVerbruik/1000*domoticz.globalData.WaterPrijs)
+ 
+ 	         bericht = 'watergebruik '..jaar..' = '..jaarVerbruik..' l. ->'..jaarKosten..' EUR' 
+	         domoticz.notify("Domoticz", bericht, domoticz.PRIORITY_LOW,domoticz.SOUND_DEFAULT, "" , domoticz.NSS_TELEGRAM)
+	         
+	         local jaarTotaal = tonumber(jaarKosten) + tonumber(vastRecht)
+ 	         bericht = 'Jaarfaktuur '..jaar..' incl vastRecht = '..jaarTotaal..' EUR ' 
+	         domoticz.notify("Domoticz", bericht, domoticz.PRIORITY_LOW,domoticz.SOUND_DEFAULT, "" , domoticz.NSS_TELEGRAM)
+           
+             --bewaar jaar beginstand
+	         domoticz.globalData.WaterJaarBeginStand = tostring(water.counter)
+        end
+                
+        --Einde dag: rapporteer verbruik en werk dagteller bij
+        
+	    if (domoticz.time.matchesRule('at 23:59')) then
+	       dagVerbruik = (tonumber(stand) - tonumber(domoticz.globalData.WaterDagBeginStand)) * 1000
+	       dagVerbruik = domoticz.utils.round(dagVerbruik,0)
+	       local dagKosten = domoticz.utils.round(dagVerbruik/1000*domoticz.globalData.WaterPrijs)
+           bericht = 'Watergebruik '..dag..' = '..dagVerbruik..' l. -> '..dagKosten..' EUR'
+           
+           domoticz.log(bericht)
+           domoticz.notify("Domoticz", bericht, domoticz.PRIORITY_LOW,domoticz.SOUND_DEFAULT, "" , domoticz.NSS_TELEGRAM)	       
+	        
+	       domoticz.log(dagVerbruik) 
+	       water.counterToday = tonumber(dagVerbruik)
+	       --bewaar dag beginstand
+	       domoticz.globalData.WaterDagBeginStand = tostring(water.counter)
+        end
+
+        --elk uur controles, bijwerken dagteller en eventueel notificatie
+        
+        if (domoticz.time.matchesRule('at *:01')) then
+           local uurStand = domoticz.globalData.WaterUurBeginStand    
+	       dagVerbruik = (tonumber(stand) - tonumber(domoticz.globalData.WaterDagBeginStand)) * 1000
+	       dagVerbruik = domoticz.utils.round(dagVerbruik,0)
+	       water.counterToday = tonumber(dagVerbruik)
+	       
+	       local uurVerbruik = (tonumber(water.counter) - tonumber(uurStand) ) * 1000
+	       uurVerbruik = domoticz.utils.round(uurVerbruik,0)
+	       if ( uurVerbruik ~= 0 ) then 
+	         local uurKosten = domoticz.utils.round(uurVerbruik/1000*domoticz.globalData.WaterPrijs)    
+	         bericht = 'Watergebruik afgelopen uur '..uurVerbruik..' l. -> '..uurKosten..' EUR'
+	         domoticz.log(bericht)
+	         --domoticz.notify("Domoticz", bericht, domoticz.PRIORITY_LOW,domoticz.SOUND_DEFAULT, "" , domoticz.NSS_TELEGRAM)
+	       end  
+	       
+	       if (uurVerbruik > hoogUurVerbruik) then
+	          bericht = 'Hoog watergebruik afgelopen uur '..uurVerbruik..' l. -> '..uurKosten..' EUR'
+	          domoticz.log(bericht)
+	          domoticz.notify("Domoticz", bericht, domoticz.PRIORITY_HIGH,domoticz.SOUND_DEFAULT, "" , domoticz.NSS_TELEGRAM)
+	       end
+	       domoticz.globalData.WaterUurBeginStand = tostring(water.counter)
+	    end    
+    
+	end    
+}
