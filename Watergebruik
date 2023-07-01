@@ -85,11 +85,9 @@ return {
 	       weekVerbruik = (tonumber(stand) - tonumber(domoticz.globalData.WaterWeekBeginStand)) * 1000
 	       weekVerbruik = domoticz.utils.round(weekVerbruik,0)
 	       local weekKosten = domoticz.utils.round(weekVerbruik/1000*domoticz.globalData.WaterPrijs)
-           bericht = 'Watergebruik W'..week..' = '..weekVerbruik..' l. -> '..weekKosten..' EUR'
-           
-           domoticz.log(bericht)
-           domoticz.notify("Domoticz", bericht, domoticz.PRIORITY_LOW,domoticz.SOUND_DEFAULT, "" , domoticz.NSS_TELEGRAM)	       
-	        
+               bericht = 'Watergebruik W'..week..' = '..weekVerbruik..' l. -> '..weekKosten..' EUR'
+               domoticz.log(bericht)
+               domoticz.notify("Domoticz", bericht, domoticz.PRIORITY_LOW,domoticz.SOUND_DEFAULT, "" , domoticz.NSS_TELEGRAM)	        
 	       domoticz.log(weekVerbruik) 
 	       --bewaar week beginstand
 	       domoticz.globalData.WaterWeekBeginStand = tostring(water.counter)            
@@ -104,15 +102,13 @@ return {
              jaarVerbruik = (tonumber(stand) - tonumber(domoticz.globalData.WaterJaarBeginStand)) * 1000 
              local jaarKosten = domoticz.utils.round(jaarVerbruik/1000*domoticz.globalData.WaterPrijs)
  
- 	         bericht = 'watergebruik '..jaar..' = '..jaarVerbruik..' l. ->'..jaarKosten..' EUR' 
-	         domoticz.notify("Domoticz", bericht, domoticz.PRIORITY_LOW,domoticz.SOUND_DEFAULT, "" , domoticz.NSS_TELEGRAM)
-	         
-	         local jaarTotaal = tonumber(jaarKosten) + tonumber(vastRecht)
- 	         bericht = 'Jaarfaktuur '..jaar..' incl vastRecht = '..jaarTotaal..' EUR ' 
-	         domoticz.notify("Domoticz", bericht, domoticz.PRIORITY_LOW,domoticz.SOUND_DEFAULT, "" , domoticz.NSS_TELEGRAM)
-           
+ 	     bericht = 'watergebruik '..jaar..' = '..jaarVerbruik..' l. ->'..jaarKosten..' EUR' 
+	     domoticz.notify("Domoticz", bericht, domoticz.PRIORITY_LOW,domoticz.SOUND_DEFAULT, "" , domoticz.NSS_TELEGRAM)    
+	     local jaarTotaal = tonumber(jaarKosten) + tonumber(vastRecht)
+ 	     bericht = 'Jaarfaktuur '..jaar..' incl vastRecht = '..jaarTotaal..' EUR ' 
+	     domoticz.notify("Domoticz", bericht, domoticz.PRIORITY_LOW,domoticz.SOUND_DEFAULT, "" , domoticz.NSS_TELEGRAM)
              --bewaar jaar beginstand
-	         domoticz.globalData.WaterJaarBeginStand = tostring(water.counter)
+             domoticz.globalData.WaterJaarBeginStand = tostring(water.counter)
         end
                 
         --Einde dag: rapporteer verbruik en werk dagteller bij
@@ -121,11 +117,9 @@ return {
 	       dagVerbruik = (tonumber(stand) - tonumber(domoticz.globalData.WaterDagBeginStand)) * 1000
 	       dagVerbruik = domoticz.utils.round(dagVerbruik,0)
 	       local dagKosten = domoticz.utils.round(dagVerbruik/1000*domoticz.globalData.WaterPrijs)
-           bericht = 'Watergebruik '..dag..' = '..dagVerbruik..' l. -> '..dagKosten..' EUR'
-           
-           domoticz.log(bericht)
-           domoticz.notify("Domoticz", bericht, domoticz.PRIORITY_LOW,domoticz.SOUND_DEFAULT, "" , domoticz.NSS_TELEGRAM)	       
-	        
+               bericht = 'Watergebruik '..dag..' = '..dagVerbruik..' l. -> '..dagKosten..' EUR'  
+               domoticz.log(bericht)
+               domoticz.notify("Domoticz", bericht, domoticz.PRIORITY_LOW,domoticz.SOUND_DEFAULT, "" , domoticz.NSS_TELEGRAM)	        
 	       domoticz.log(dagVerbruik) 
 	       water.counterToday = tonumber(dagVerbruik)
 	       --bewaar dag beginstand
@@ -138,8 +132,7 @@ return {
            local uurStand = domoticz.globalData.WaterUurBeginStand    
 	       dagVerbruik = (tonumber(stand) - tonumber(domoticz.globalData.WaterDagBeginStand)) * 1000
 	       dagVerbruik = domoticz.utils.round(dagVerbruik,0)
-	       water.counterToday = tonumber(dagVerbruik)
-	       
+	       water.counterToday = tonumber(dagVerbruik)	       
 	       local uurVerbruik = (tonumber(water.counter) - tonumber(uurStand) ) * 1000
 	       uurVerbruik = domoticz.utils.round(uurVerbruik,0)
 	       if ( uurVerbruik ~= 0 ) then 
@@ -147,8 +140,7 @@ return {
 	         bericht = 'Watergebruik afgelopen uur '..uurVerbruik..' l. -> '..uurKosten..' EUR'
 	         domoticz.log(bericht)
 	         --domoticz.notify("Domoticz", bericht, domoticz.PRIORITY_LOW,domoticz.SOUND_DEFAULT, "" , domoticz.NSS_TELEGRAM)
-	       end  
-	       
+	       end  	       
 	       if (uurVerbruik > hoogUurVerbruik) then
 	          bericht = 'Hoog watergebruik afgelopen uur '..uurVerbruik..' l. -> '..uurKosten..' EUR'
 	          domoticz.log(bericht)
