@@ -1,0 +1,24 @@
+-- this scripts holds all the globally persistent variables and helper functions
+-- see the documentation in the wiki
+-- NOTE:
+-- THERE CAN BE ONLY ONE global_data SCRIPT in your Domoticz install.
+-- Data is stored in /home/pi/domoticz/scripts/dzVents/data/__data_global_data.lua
+
+return {
+	-- global persistent data
+	data = {
+	  WaterPrijs                = { initial = '2.112' }, --prijs 2023 incl BTW en BOL per 1000 liter
+		WaterUurBeginStand        = { initial = '' },
+		WaterDagBeginStand        = { initial = '' },
+		WaterWeekBeginStand       = { initial = '' },
+		WaterMaandBeginStand      = { initial = '' },
+		WaterJaarBeginStand       = { initial = '' }
+	},
+
+	-- global helper functions
+	helpers = {
+		myHelperFunction = function(domoticz)
+			-- code
+		end
+	}
+}
